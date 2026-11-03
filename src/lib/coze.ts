@@ -39,6 +39,13 @@ export function cozeConfigured() {
   return Boolean(env("COZE_PAT") && env("COZE_WORKFLOW_ID"));
 }
 
+export function reviewUsesMock() {
+  const source = env("REVIEW_SOURCE").toLowerCase();
+  if (source === "mock" || source === "demo") return true;
+  if (source === "live") return !cozeConfigured();
+  return !cozeConfigured();
+}
+
 function apiBase() {
   return (env("COZE_API_BASE") || DEFAULT_BASE).replace(/\/$/, "");
 }

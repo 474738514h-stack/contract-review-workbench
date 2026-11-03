@@ -24,7 +24,7 @@ import {
 } from "@/lib/options";
 import type { ReviewApiResponse } from "@/lib/types";
 
-type Connection = "checking" | "connected" | "disconnected" | "unconfigured";
+type Connection = "checking" | "connected" | "disconnected" | "unconfigured" | "mock";
 type Phase = "idle" | "running" | "done";
 
 const LOADING_HINTS = [
@@ -66,8 +66,8 @@ export function Workbench() {
     const controller = new AbortController();
     fetch("/api/status", { signal: controller.signal, cache: "no-store" })
       .then((res) => res.json())
-      .then((data: { configured?: boolean; connected?: boolean }) => {
-        if (!data.configured) setConnection("unconfigured");
+      .then((data: { configured?: boolean; connected?: boolean; mock?: boolean }) => {
+        if (data.mock || !data.configured) setConnection("mock");
         else if (data.connected) setConnection("connected");
         else setConnection("disconnected");
       })
@@ -92,7 +92,7 @@ export function Workbench() {
   const running = phase === "running";
 
   function stepState(index: number): StepVisual {
-    if (phase === "done" && response && !response.demo && !response.error) return "complete";
+    if (phase === "done" && response?.result && !response.error) return "complete";
     if (phase === "done" && response?.error) {
       if (index < activeStep) return "complete";
       if (index === activeStep) return "halt";
@@ -266,7 +266,8 @@ export function Workbench() {
     checking: "正在检查连接",
     connected: "扣子工作流已连接",
     disconnected: "扣子工作流连接异常",
-    unconfigured: "扣子工作流未配置",
+    unconfigured: "演示数据",
+    mock: "演示数据",
   }[connection];
 
   return (
@@ -283,7 +284,13 @@ export function Workbench() {
           <div className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-[#f4f8f5] px-2.5 py-1 text-xs sm:text-sm">
             <span
               className={`size-2 rounded-full ${
-                connection === "connected" ? "bg-green-600" : connection === "checking" ? "bg-orange-500" : "bg-red-600"
+                connection === "connected"
+                  ? "bg-green-600"
+                  : connection === "mock" || connection === "unconfigured"
+                    ? "bg-[#7d9488]"
+                    : connection === "checking"
+                      ? "bg-orange-500"
+                      : "bg-red-600"
               }`}
             />
             <span className="max-w-36 truncate sm:max-w-none">{connectionLabel}</span>

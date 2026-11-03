@@ -4,6 +4,7 @@ import {
   CozeRequestError,
   buildRequirement,
   resumeContractWorkflow,
+  reviewUsesMock,
   runContractWorkflow,
   uploadContractFile,
   type StreamOutcome,
@@ -35,6 +36,17 @@ type ReviewContext = {
   focus: string[];
   requirements: string;
 };
+
+function mockReview(context: ReviewContext): ReviewApiResponse {
+  return {
+    ok: true,
+    demo: true,
+    error: null,
+    authUrl: null,
+    resume: null,
+    result: buildDemoReview(context),
+  };
+}
 
 function failure(error: string): ReviewApiResponse {
   return { ok: false, demo: false, error, authUrl: null, resume: null, result: null };
@@ -156,7 +168,12 @@ export async function reviewForm(form: FormData): Promise<ReviewApiResponse> {
     bytes = buildDocx(text.trim());
   }
 
-  return execute({ contractType, stance, focus, requirements }, { filename, mime, bytes });
+  const context = { contractType, stance, focus, requirements };
+  if (reviewUsesMock()) {
+    await new Promise((resolve) => setTimeout(resolve, 3200));
+    return mockReview(context);
+  }
+  return execute(context, { filename, mime, bytes });
 }
 
 export async function reviewResume(input: {
@@ -175,6 +192,7 @@ export async function reviewResume(input: {
     focus: input.focus.filter((item) => allowedValue(item, FOCUS_OPTIONS)),
     requirements: "",
   };
+  if (reviewUsesMock()) return mockReview(context);
   try {
     const outcome = await resumeContractWorkflow(input.eventId, input.interruptType);
     return fromOutcome(outcome, context);
